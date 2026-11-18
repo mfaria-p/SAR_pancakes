@@ -1,0 +1,119 @@
+<!--
+  Pancake-flipping robot arm.
+  A 3-joint arm (shoulder, elbow, wrist; all pitch joints in the x-z plane)
+  holds a frying pan. A pancake (free body) starts in the pan with its
+  golden (cooked) side DOWN. The goal is to toss it so it lands back in the
+  pan golden side UP.
+-->
+<mujoco model="pancake_flip">
+  <compiler angle="radian" autolimits="true"/>
+  <option timestep="0.002" integrator="implicitfast" gravity="0 0 -9.81"/>
+
+  <visual>
+    <headlight ambient="0.35 0.35 0.35" diffuse="0.6 0.6 0.6" specular="0.1 0.1 0.1"/>
+    <global offwidth="1280" offheight="960"/>
+    <quality shadowsize="4096"/>
+  </visual>
+
+  <asset>
+    <texture name="sky" type="skybox" builtin="gradient" rgb1="0.95 0.92 0.85" rgb2="0.75 0.72 0.68" width="256" height="256"/>
+    <texture name="tiles" type="2d" builtin="checker" rgb1="0.85 0.83 0.78" rgb2="0.75 0.72 0.66" width="512" height="512"/>
+    <material name="floor" texture="tiles" texrepeat="8 8" reflectance="0.05"/>
+    <material name="counter" rgba="0.55 0.38 0.25 1"/>
+    <material name="stove" rgba="0.15 0.15 0.16 1"/>
+    <material name="metal" rgba="0.6 0.62 0.66 1" specular="0.6" shininess="0.6"/>
+    <material name="robot" rgba="0.95 0.55 0.15 1"/>
+    <material name="joint" rgba="0.2 0.2 0.22 1"/>
+    <material name="pan" rgba="0.12 0.12 0.13 1" specular="0.4"/>
+    <material name="handle" rgba="0.35 0.2 0.1 1"/>
+    <material name="golden" rgba="0.80 0.50 0.15 1"/>
+    <material name="raw" rgba="0.98 0.93 0.72 1"/>
+  </asset>
+
+  <default>
+    <joint damping="2" armature="0.02"/>
+    <geom friction="0.8 0.01 0.001" solref="0.004 1" solimp="0.95 0.99 0.001"/>
+    <position kp="500" forcerange="-100 100"/>
+    <default class="visual">
+      <geom contype="0" conaffinity="0" group="1"/>
+    </default>
+  </default>
+
+  <worldbody>
+    <light name="key" pos="0.6 -1.2 2.0" dir="-0.2 0.6 -1" castshadow="true" diffuse="0.7 0.7 0.7"/>
+    <geom name="floor" type="plane" size="3 3 0.1" material="floor"/>
+
+    <!-- kitchen counter with a stove top -->
+    <geom name="counter" type="box" pos="0.55 0 0.17" size="0.55 0.35 0.17" material="counter"/>
+    <geom name="stove" type="box" pos="0.75 0 0.345" size="0.2 0.2 0.005" material="stove"/>
+    <geom name="burner" class="visual" type="cylinder" pos="0.75 0 0.351" size="0.09 0.001" rgba="0.8 0.15 0.05 1"/>
+
+    <!-- robot -->
+    <body name="base" pos="0 0 0.34">
+      <geom name="pedestal" type="cylinder" size="0.07 0.08" pos="0 0 0.08" material="joint"/>
+      <body name="upper_arm" pos="0 0 0.2">
+        <joint name="shoulder" type="hinge" axis="0 1 0" range="-1.6 1.0"/>
+        <geom name="shoulder_cap" class="visual" type="cylinder" size="0.05 0.045" zaxis="0 1 0" material="joint"/>
+        <geom name="upper_arm" type="capsule" fromto="0 0 0 0.3 0 0" size="0.035" material="robot" mass="1.2"/>
+        <body name="forearm" pos="0.3 0 0">
+          <joint name="elbow" type="hinge" axis="0 1 0" range="-0.4 2.6"/>
+          <geom name="elbow_cap" class="visual" type="cylinder" size="0.045 0.04" zaxis="0 1 0" material="joint"/>
+          <geom name="forearm" type="capsule" fromto="0 0 0 0.26 0 0" size="0.03" material="robot" mass="0.8"/>
+          <body name="hand" pos="0.26 0 0">
+            <joint name="wrist" type="hinge" axis="0 1 0" range="-2.2 2.2"/>
+            <geom name="wrist_cap" class="visual" type="cylinder" size="0.035 0.035" zaxis="0 1 0" material="joint"/>
+            <geom name="handle" type="capsule" fromto="0.02 0 0 0.12 0 0" size="0.015" material="handle" mass="0.1"/>
+            <!-- frying pan, top surface at z = +0.006 in this frame -->
+            <body name="pan" pos="0.25 0 0">
+              <geom name="pan_visual" class="visual" type="cylinder" size="0.13 0.006" material="pan"/>
+              <geom name="pan_bottom" type="box" size="0.13 0.13 0.006" rgba="0 0 0 0" mass="0.4" group="3"/>
+              <!-- rim: 16 short walls around the edge -->
+              <geom name="rim0"  type="box" pos=" 0.135  0.000 0.018" size="0.006 0.027 0.018" euler="0 0 0.0000" material="pan" mass="0.01"/>
+              <geom name="rim1"  type="box" pos=" 0.125  0.052 0.018" size="0.006 0.027 0.018" euler="0 0 0.3927" material="pan" mass="0.01"/>
+              <geom name="rim2"  type="box" pos=" 0.095  0.095 0.018" size="0.006 0.027 0.018" euler="0 0 0.7854" material="pan" mass="0.01"/>
+              <geom name="rim3"  type="box" pos=" 0.052  0.125 0.018" size="0.006 0.027 0.018" euler="0 0 1.1781" material="pan" mass="0.01"/>
+              <geom name="rim4"  type="box" pos=" 0.000  0.135 0.018" size="0.006 0.027 0.018" euler="0 0 1.5708" material="pan" mass="0.01"/>
+              <geom name="rim5"  type="box" pos="-0.052  0.125 0.018" size="0.006 0.027 0.018" euler="0 0 1.9635" material="pan" mass="0.01"/>
+              <geom name="rim6"  type="box" pos="-0.095  0.095 0.018" size="0.006 0.027 0.018" euler="0 0 2.3562" material="pan" mass="0.01"/>
+              <geom name="rim7"  type="box" pos="-0.125  0.052 0.018" size="0.006 0.027 0.018" euler="0 0 2.7489" material="pan" mass="0.01"/>
+              <geom name="rim8"  type="box" pos="-0.135  0.000 0.018" size="0.006 0.027 0.018" euler="0 0 3.1416" material="pan" mass="0.01"/>
+              <geom name="rim9"  type="box" pos="-0.125 -0.052 0.018" size="0.006 0.027 0.018" euler="0 0 3.5343" material="pan" mass="0.01"/>
+              <geom name="rim10" type="box" pos="-0.095 -0.095 0.018" size="0.006 0.027 0.018" euler="0 0 3.9270" material="pan" mass="0.01"/>
+              <geom name="rim11" type="box" pos="-0.052 -0.125 0.018" size="0.006 0.027 0.018" euler="0 0 4.3197" material="pan" mass="0.01"/>
+              <geom name="rim12" type="box" pos=" 0.000 -0.135 0.018" size="0.006 0.027 0.018" euler="0 0 4.7124" material="pan" mass="0.01"/>
+              <geom name="rim13" type="box" pos=" 0.052 -0.125 0.018" size="0.006 0.027 0.018" euler="0 0 5.1051" material="pan" mass="0.01"/>
+              <geom name="rim14" type="box" pos=" 0.095 -0.095 0.018" size="0.006 0.027 0.018" euler="0 0 5.4978" material="pan" mass="0.01"/>
+              <geom name="rim15" type="box" pos=" 0.125 -0.052 0.018" size="0.006 0.027 0.018" euler="0 0 5.8905" material="pan" mass="0.01"/>
+              <site name="pan_center" pos="0 0 0.006" size="0.005" rgba="1 0 0 0"/>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+
+    <!-- pancake: local +z face is raw (pale), local -z face is golden -->
+    <body name="pancake" pos="0.7 0 0.6">
+      <freejoint name="pancake"/>
+      <geom name="pancake_raw" type="cylinder" pos="0 0 0.004" size="0.075 0.004" material="raw" mass="0.03" friction="0.6 0.01 0.001"/>
+      <geom name="pancake_golden" type="cylinder" pos="0 0 -0.004" size="0.075 0.004" material="golden" mass="0.03" friction="0.6 0.01 0.001"/>
+      <site name="pancake_center" pos="0 0 0" size="0.005" rgba="1 0 0 0"/>
+    </body>
+
+    <camera name="side" pos="0.45 -1.45 0.85" xyaxes="1 0 0 0 0.25 0.97" fovy="45"/>
+    <camera name="close" pos="0.75 -0.75 0.95" xyaxes="1 0 0 0 0.55 0.83" fovy="45"/>
+  </worldbody>
+
+  <contact>
+    <!-- the arm links never need to collide with each other -->
+    <exclude body1="base" body2="upper_arm"/>
+    <exclude body1="upper_arm" body2="forearm"/>
+    <exclude body1="forearm" body2="hand"/>
+    <exclude body1="hand" body2="pan"/>
+  </contact>
+
+  <actuator>
+    <position name="shoulder" joint="shoulder" ctrlrange="-1.6 1.0"/>
+    <position name="elbow" joint="elbow" ctrlrange="-0.4 2.6"/>
+    <position name="wrist" joint="wrist" ctrlrange="-2.2 2.2" kp="150"/>
+  </actuator>
+</mujoco>
